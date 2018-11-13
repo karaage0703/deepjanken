@@ -20,6 +20,11 @@
 """Script to run generic MobileNet based classification model."""
 import argparse
 
+from aiy.toneplayer import TonePlayer
+from aiy.leds import Leds
+
+from gpiozero import Button
+
 from picamera import Color
 from picamera import PiCamera
 
@@ -28,10 +33,25 @@ from aiy.vision.models import utils
 
 from PIL import Image
 from time import sleep
+import time
 import pygame
 from pygame.locals import *
 import os
 import random
+import sys
+
+BUZZER_GPIO = 22
+BUTTON_GPIO = 23
+
+toneplayer = TonePlayer(BUZZER_GPIO)
+leds = Leds()
+button = Button(BUTTON_GPIO)
+
+BEEP_SOUND = ('E6q', 'C6q')
+RED = (0xFF, 0x00, 0x00)
+GREEN = (0x00, 0xFF, 0x00)
+BLUE = (0x00, 0x00, 0xFF)
+WHITE = (0xFF, 0xFF, 0xFF)
 
 photo_filename = 'janken.jpg'
 font_size = 150
@@ -85,12 +105,32 @@ def process(result, labels, tensor_name, threshold, top_k):
     # return [' %s (%.2f)' % (labels[index], prob) for index, prob in pairs]
     return ['%s' % (labels[index]) for index, prob in pairs]
 
+def test_mode():
+    with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
+        camera.start_preview()
+
+        with inference.CameraInference(model) as camera_inference:
+            for result in camera_inference.run(60):
+                processed_result = process(result, labels, args.output_layer,
+                                           args.threshold, 1)
+                message = get_message(processed_result, args.threshold, 1)
+                print(message)
+
+                camera.annotate_text_size = 120
+                # camera.annotate_foreground = Color('black')
+                # camera.annotate_background = Color('white')
+                # PiCamera text annotation only supports ascii.
+                camera.annotate_text = '\n %s' % message.encode(
+                    'ascii', 'backslashreplace').decode('ascii')
+
 def first_gu():
     screen.fill((255,255,255))
     text = japanese_font.render(u"最初はグー", True, (0,0,0))
     screen.blit(text, [size[0]/2-font_size/2, size[1]/2-font_size/2])
     pygame.display.update()
     sleep(5.0)
+    screen.fill((255,255,255))
+    pygame.display.update()
 
     with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
         camera.start_preview()
@@ -131,7 +171,7 @@ def janken_screen():
 
 def result_screen(result):
     if result == 'win':
-        text = big_font.render("You Win!", True, (255,255,255))
+        text = big_font.render(u"You Win!", True, (255,255,255))
         screen.blit(text, [size[0]/4-font_size*1.5/2 , size[1]/4*3-font_size/2])
 
     if result == 'draw':
@@ -205,7 +245,7 @@ def janken(your_hand):
     pygame.display.update()
     sleep(5.0)
 
-def main():
+def hand_recog():
     print("Taking photo")
     with PiCamera() as camera:
         camera.resolution = (640, 480)
@@ -222,6 +262,50 @@ def main():
 
     return message
 
+def KeepWatchForSeconds(seconds):
+    GoFlag = True
+    while seconds > 0:
+        time.sleep(0.1)
+        seconds -= 0.1
+        if not button.is_pressed:
+            GoFlag = False
+            break
+    return GoFlag
+
+def run():
+    if KeepWatchForSeconds(3):
+        print("Go test mode")
+        leds.update(Leds.rgb_on(BLUE))
+        test_mode()
+        screen.fill((255,255,255))
+        pygame.display.update()
+        leds.update(Leds.rgb_on(WHITE))
+
+    else:
+        print("Beep sound")
+        toneplayer.play(*BEEP_SOUND)
+
+        leds.update(Leds.rgb_on(RED))
+        print("process")
+        first_gu()
+        janken_screen()
+        your_hand = hand_recog()
+        janken(your_hand)
+
+        print("Done")
+        leds.update(Leds.rgb_on(WHITE))
+
+def main():
+    button.when_pressed = run
+    leds.update(Leds.rgb_on(WHITE))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    leds.update(Leds.rgb_off())
+                    sys.exit()
+
 if __name__ == '__main__':
     pygame.init()
     font = pygame.font.Font(None, font_size)
@@ -231,7 +315,4 @@ if __name__ == '__main__':
     print("Framebuffer size: %d x %d" % (size[0], size[1]))
     screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
 
-    first_gu()
-    janken_screen()
-    your_hand = main()
-    janken(your_hand)
+    main()
