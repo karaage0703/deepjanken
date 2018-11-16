@@ -39,6 +39,7 @@ from pygame.locals import *
 import os
 import random
 import sys
+import subprocess
 
 BUZZER_GPIO = 22
 BUTTON_GPIO = 23
@@ -53,7 +54,10 @@ GREEN = (0x00, 0xFF, 0x00)
 BLUE = (0x00, 0x00, 0xFF)
 WHITE = (0xFF, 0xFF, 0xFF)
 
+shutter_numb = 0
 photo_filename = 'janken.jpg'
+photo_dir = os.path.expanduser('/home/pi/janken_data')
+
 font_size = 150
 
 parser = argparse.ArgumentParser()
@@ -72,6 +76,26 @@ parser.add_argument('--threshold', type=float, default=0.1,
     help='Threshold for classification score (from output tensor).')
 parser.add_argument('--top_k', type=int, default=1, help='Keep at most top_k labels.')
 args = parser.parse_args()
+
+def loadFile():
+    global shutter_numb
+
+    if os.path.isdir(photo_dir):
+        pass
+    else:
+        print("make photo directory")
+        os.mkdir(photo_dir)
+        filename = os.path.join(photo_dir, 'camera.set')
+        with open(filename, mode='w') as fp:
+            fp.write('0')
+
+    filename = os.path.join(photo_dir, 'camera.set')
+
+    with open(filename) as fp:
+        fp = open(filename)
+        tmp_shutter_numb = fp.readlines()
+        tmp_shutter_numb = tmp_shutter_numb[0].rstrip()
+        shutter_numb = int(tmp_shutter_numb)
 
 def read_labels(label_path):
     with open(label_path) as label_file:
@@ -105,16 +129,16 @@ def process(result, labels, tensor_name, threshold, top_k):
     # return [' %s (%.2f)' % (labels[index], prob) for index, prob in pairs]
     return ['%s' % (labels[index]) for index, prob in pairs]
 
-def test_mode():
+def test_mode(test_time = 30):
     with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
         camera.start_preview()
 
         with inference.CameraInference(model) as camera_inference:
-            for result in camera_inference.run(60):
+            for result in camera_inference.run(test_time):
                 processed_result = process(result, labels, args.output_layer,
                                            args.threshold, 1)
                 message = get_message(processed_result, args.threshold, 1)
-                print(message)
+                # print(message)
 
                 camera.annotate_text_size = 120
                 # camera.annotate_foreground = Color('black')
@@ -123,31 +147,24 @@ def test_mode():
                 camera.annotate_text = '\n %s' % message.encode(
                     'ascii', 'backslashreplace').decode('ascii')
 
+def manual_screen():
+    screen.fill((255,255,255))
+    text = japanese_font.render(u"ボタンを押したら始まるよ！", True, (0,0,0))
+    screen.blit(text, [size[0]/2-font_size/2-300, size[1]/2-font_size/2-200])
+    text = japanese_font.render(u"ボタン長押しで認識モードだよ！", True, (0,0,0))
+    screen.blit(text, [size[0]/2-font_size/2-350, size[1]/2-font_size/2+200])
+    pygame.display.update()
+
 def first_gu():
     screen.fill((255,255,255))
     text = japanese_font.render(u"最初はグー", True, (0,0,0))
-    screen.blit(text, [size[0]/2-font_size/2, size[1]/2-font_size/2])
+    screen.blit(text, [size[0]/2-font_size/2-50, size[1]/2-font_size/2])
     pygame.display.update()
     sleep(5.0)
     screen.fill((255,255,255))
     pygame.display.update()
 
-    with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
-        camera.start_preview()
-
-        with inference.CameraInference(model) as camera_inference:
-            for result in camera_inference.run(30):
-                processed_result = process(result, labels, args.output_layer,
-                                           args.threshold, 1)
-                message = get_message(processed_result, args.threshold, 1)
-                print(message)
-
-                camera.annotate_text_size = 120
-                # camera.annotate_foreground = Color('black')
-                # camera.annotate_background = Color('white')
-                # PiCamera text annotation only supports ascii.
-                camera.annotate_text = '\n %s' % message.encode(
-                    'ascii', 'backslashreplace').decode('ascii')
+    test_mode(test_time = 30)
 
 def janken_screen():
     screen.fill((255,255,255))
@@ -171,49 +188,59 @@ def janken_screen():
 
 def result_screen(result):
     if result == 'win':
-        text = big_font.render(u"You Win!", True, (255,255,255))
+        text = japanese_font.render(u"あなたの勝ち！", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size*1.5/2 , size[1]/4*3-font_size/2])
 
     if result == 'draw':
-        text = big_font.render("Draw", True, (255,255,255))
+        text = japanese_font.render(u"ひきわけ！", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size*1.5/2 , size[1]/4*3-font_size/2])
 
     if result == 'lose':
-        text = big_font.render("You Lose...", True, (255,255,255))
+        text = japanese_font.render(u"あなたの負け！", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size*1.5/2 , size[1]/4*3-font_size/2])
 
+    if result == 'etc':
+        text = japanese_font.render(u"それ何の手？", True, (0,0,0))
+        screen.blit(text, [size[0]/4-font_size*1.5/2 , size[1]/4*3-font_size/2])
+
+
 def janken(your_hand):
+    janken_result = 'etc'
     ai_hand = random.choice(['gu', 'choki', 'pa'])
 
-    screen.fill((0,0,0))
+    screen.fill((255,255,255))
 
-    text = font.render("AI", True, (255,255,255))
-    screen.blit(text, [size[0]/4-font_size/2 , size[1]/4-font_size/2])
-    text = font.render("You", True, (255,255,255))
+    text = japanese_font.render("Deep Janken", True, (0,0,0))
+    screen.blit(text, [size[0]/4-font_size/2-100 , size[1]/4-font_size/2])
+    text = japanese_font.render("You", True, (0,0,0))
     screen.blit(text, [size[0]/4*3-font_size/2 , size[1]/4-font_size/2])
 
     if ai_hand == 'gu':
-        text = font.render("Gu", True, (255,255,255))
+        text = japanese_font.render(u"グー", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size/2 , size[1]/2-font_size/2])
 
     if ai_hand == 'choki':
-        text = font.render("Choki", True, (255,255,255))
+        text = japanese_font.render(u"チョキ", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size/2, size[1]/2-font_size/2])
 
     if ai_hand == 'pa':
-        text = font.render("Pa", True, (255,255,255))
+        text = japanese_font.render(u"パー", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size/2, size[1]/2-font_size/2])
 
     if your_hand == 'gu':
-        text = font.render("Gu", True, (255,255,255))
+        text = japanese_font.render(u"グー", True, (0,0,0))
         screen.blit(text, [size[0]/4*3-font_size/2 , size[1]/2-font_size/2])
 
     if your_hand == 'choki':
-        text = font.render("Choki", True, (255,255,255))
+        text = japanese_font.render(u"チョキ", True, (0,0,0))
         screen.blit(text, [size[0]/4*3-font_size/2 , size[1]/2-font_size/2])
 
     if your_hand == 'pa':
-        text = font.render("Pa", True, (255,255,255))
+        text = japanese_font.render(u"パー", True, (0,0,0))
+        screen.blit(text, [size[0]/4*3-font_size/2 , size[1]/2-font_size/2])
+
+    if your_hand == 'etc':
+        text = japanese_font.render(u"はてな？", True, (0,0,0))
         screen.blit(text, [size[0]/4*3-font_size/2 , size[1]/2-font_size/2])
 
     if ai_hand == 'gu':
@@ -243,15 +270,29 @@ def janken(your_hand):
     result_screen(janken_result)
 
     pygame.display.update()
-    sleep(5.0)
+    sleep(10.0)
 
 def hand_recog():
+    global shutter_numb
+
+    # load shutter number from setting file
+    loadFile()
+    filename = os.path.join(photo_dir, 'camera.set')
+
+    shutter_numb +=1
+    # write shutter number to setting file
+    with open(filename, mode='w') as fp:
+        fp.write(str(shutter_numb))
+
     print("Taking photo")
     with PiCamera() as camera:
         camera.resolution = (640, 480)
         camera.start_preview()
         sleep(3.000)
         camera.capture(photo_filename)
+
+        filename = os.path.join(photo_dir, str("{0:06d}".format(shutter_numb)) + '.jpg')
+        camera.capture(filename)
 
     with inference.ImageInference(model) as image_inference:
         image = Image.open(photo_filename)
@@ -276,9 +317,8 @@ def run():
     if KeepWatchForSeconds(3):
         print("Go test mode")
         leds.update(Leds.rgb_on(BLUE))
-        test_mode()
-        screen.fill((255,255,255))
-        pygame.display.update()
+        test_mode(test_time = 100)
+        manual_screen()
         leds.update(Leds.rgb_on(WHITE))
 
     else:
@@ -294,10 +334,12 @@ def run():
 
         print("Done")
         leds.update(Leds.rgb_on(WHITE))
+        manual_screen()
 
 def main():
     button.when_pressed = run
     leds.update(Leds.rgb_on(WHITE))
+    manual_screen()
 
     while True:
         for event in pygame.event.get():
