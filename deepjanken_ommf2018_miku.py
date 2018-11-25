@@ -44,6 +44,13 @@ import subprocess
 import pygame.midi
 from time import sleep
 
+from gpiozero import Servo
+from aiy.pins import PIN_A
+from aiy.pins import PIN_B
+from aiy.pins import PIN_C
+
+
+
 instrument = 0
 
 BUZZER_GPIO = 22
@@ -58,6 +65,10 @@ RED = (0xFF, 0x00, 0x00)
 GREEN = (0x00, 0xFF, 0x00)
 BLUE = (0x00, 0x00, 0xFF)
 WHITE = (0xFF, 0xFF, 0xFF)
+
+gu_servo = Servo(PIN_A, initial_value=0, min_pulse_width=.0006, max_pulse_width=.00235)
+choki_servo = Servo(PIN_B, initial_value=0, min_pulse_width=.0006, max_pulse_width=.00235)
+pa_servo = Servo(PIN_C, initial_value=0, min_pulse_width=.0006, max_pulse_width=.00235)
 
 shutter_numb = 0
 photo_filename = 'janken.jpg'
@@ -300,6 +311,7 @@ def first_gu():
     pygame.display.update()
 
     test_mode(test_time = 30)
+    gu_servo.min()
 
 def janken_screen():
     midiOutput.write_sys_ex(0, b'\xF0\x43\x79\x09\x11\x0A\x00\x24\x7B\x08\x7B\x55\x7B\xF7')
@@ -390,14 +402,17 @@ def janken(your_hand):
     if ai_hand == 'gu':
         text = japanese_font.render(u"グー", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size/2 , size[1]/2-font_size/2])
+        gu_servo.max()
 
     if ai_hand == 'choki':
         text = japanese_font.render(u"チョキ", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size/2, size[1]/2-font_size/2])
+        choki_servo.max()
 
     if ai_hand == 'pa':
         text = japanese_font.render(u"パー", True, (0,0,0))
         screen.blit(text, [size[0]/4-font_size/2, size[1]/2-font_size/2])
+        pa_servo.max()
 
     if your_hand == 'gu':
         text = japanese_font.render(u"グー", True, (0,0,0))
@@ -459,6 +474,7 @@ def hand_recog():
     print("Taking photo")
     with PiCamera() as camera:
         camera.resolution = (640, 480)
+        camera.awb_mode = 'sunlight'
         camera.start_preview()
         sleep(3.000)
         camera.capture(photo_filename)
@@ -499,12 +515,16 @@ def run():
 
         leds.update(Leds.rgb_on(RED))
         print("process")
+        gu_servo.max()
         first_gu()
         janken_screen()
         your_hand = hand_recog()
         janken(your_hand)
 
         print("Done")
+        gu_servo.min()
+        choki_servo.min()
+        pa_servo.min()
         leds.update(Leds.rgb_on(WHITE))
         manual_screen()
 
@@ -525,6 +545,13 @@ def main():
 if __name__ == '__main__':
     pygame.init()
     pygame.midi.init()
+
+    gu_servo.max()
+    gu_servo.min()
+    choki_servo.max()
+    choki_servo.min()
+    pa_servo.max()
+    pa_servo.min()
 
     for i in range(pygame.midi.get_count()):
         interf, name, input_dev, output_dev, opened = pygame.midi.get_device_info(i)

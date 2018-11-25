@@ -11,6 +11,7 @@ camera = picamera.PiCamera()
 
 def setting():
     camera.resolution = (2592,1944)
+    camera.awb_mode = 'sunlight'
     # camera.brightness = 50
     # camera.flash_mode = 'on'
     # camera.exposure_compensation = 0
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     preview(preview_time=3)
     try:
         while True:
-            preview(preview_time=1)
+            preview(preview_time=2)
             shutter()
 
     except KeyboardInterrupt:
