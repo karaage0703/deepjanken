@@ -108,52 +108,16 @@ def miku_first_gu():
     midiOutput.note_off(68,80)
 
 def miku_win():
-    midiOutput.write_sys_ex(0, b'\xF0\x43\x79\x09\x11\x0A\x00\x77\x29\x20\x43\x05\x00\x36\xF7')
+    midiOutput.write_sys_ex(0, b'\xF0\x43\x79\x09\x11\x0A\x00\x00\x3F\x29\x43\x64\x08\xF7')
     midiOutput.write_short(0xB0, 0x5B, 0x3F) # reverb
 
     midiOutput.note_on(64,80)
     sleep(.300)
     midiOutput.note_off(64,80)
 
-    midiOutput.note_on(64,80)
-    sleep(.300)
-    midiOutput.note_off(64,80)
-
-    midiOutput.note_on(64,80)
-    sleep(.300)
-    midiOutput.note_off(64,80)
-
-    midiOutput.note_on(64,80)
-    sleep(.300)
-    midiOutput.note_off(64,80)
-
-    midiOutput.note_on(66,80)
-    sleep(.500)
-    midiOutput.note_off(66,80)
-
-    midiOutput.note_on(64,80)
-    sleep(.200)
-    midiOutput.note_off(64,80)
-
     midiOutput.note_on(66,80)
     sleep(.300)
     midiOutput.note_off(66,80)
-
-def miku_lose():
-    midiOutput.write_sys_ex(0, b'\xF0\x43\x79\x09\x11\x0A\x00\x77\x29\x20\x43\x64\x08\xF7')
-    midiOutput.write_short(0xB0, 0x5B, 0x3F) # reverb
-
-    midiOutput.note_on(64,80)
-    sleep(.300)
-    midiOutput.note_off(64,80)
-
-    midiOutput.note_on(64,80)
-    sleep(.300)
-    midiOutput.note_off(64,80)
-
-    midiOutput.note_on(64,80)
-    sleep(.300)
-    midiOutput.note_off(64,80)
 
     midiOutput.note_on(64,80)
     sleep(.300)
@@ -164,9 +128,48 @@ def miku_lose():
     midiOutput.note_off(64,80)
 
     midiOutput.note_on(60,80)
-    sleep(.900)
+    sleep(.500)
     midiOutput.note_off(60,80)
 
+    midiOutput.note_on(60,80)
+    sleep(.700)
+    midiOutput.note_off(60,80)
+
+    # midiOutput.note_on(66,80)
+    # sleep(.300)
+    # midiOutput.note_off(66,80)
+
+def miku_lose():
+    midiOutput.write_sys_ex(0, b'\xF0\x43\x79\x09\x11\x0A\x00\x00\x3F\x29\x43\x05\x00\x36\xF7')
+    midiOutput.write_short(0xB0, 0x5B, 0x3F) # reverb
+
+    midiOutput.note_on(64,80)
+    sleep(.300)
+    midiOutput.note_off(64,80)
+
+    midiOutput.note_on(66,80)
+    sleep(.300)
+    midiOutput.note_off(66,80)
+
+    midiOutput.note_on(64,80)
+    sleep(.300)
+    midiOutput.note_off(64,80)
+
+    midiOutput.note_on(64,80)
+    sleep(.300)
+    midiOutput.note_off(64,80)
+
+    midiOutput.note_on(66,80)
+    sleep(.700)
+    midiOutput.note_off(66,80)
+
+    midiOutput.note_on(64,80)
+    sleep(.300)
+    midiOutput.note_off(64,80)
+
+    midiOutput.note_on(66,80)
+    sleep(.300)
+    midiOutput.note_off(66,80)
 
 def miku_draw():
     midiOutput.write_sys_ex(0, b'\xF0\x43\x79\x09\x11\x0A\x00\x00\x01\x09\xF7')
