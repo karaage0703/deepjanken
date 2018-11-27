@@ -49,8 +49,6 @@ from aiy.pins import PIN_A
 from aiy.pins import PIN_B
 from aiy.pins import PIN_C
 
-
-
 instrument = 0
 
 BUZZER_GPIO = 22
@@ -145,10 +143,6 @@ def miku_win():
     midiOutput.note_on(60,80)
     sleep(.700)
     midiOutput.note_off(60,80)
-
-    # midiOutput.note_on(66,80)
-    # sleep(.300)
-    # midiOutput.note_off(66,80)
 
 def miku_lose():
     midiOutput.write_sys_ex(0, b'\xF0\x43\x79\x09\x11\x0A\x00\x00\x3F\x29\x43\x05\x00\x36\xF7')
@@ -472,9 +466,8 @@ def hand_recog():
         fp.write(str(shutter_numb))
 
     print("Taking photo")
-    with PiCamera() as camera:
-        camera.resolution = (640, 480)
-        camera.awb_mode = 'sunlight'
+    with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
+        # camera.awb_mode = 'sunlight'
         camera.start_preview()
         sleep(3.000)
         camera.capture(photo_filename)

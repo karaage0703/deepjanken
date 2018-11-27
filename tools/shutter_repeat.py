@@ -10,8 +10,10 @@ photo_dir = os.path.expanduser('/home/pi/photo_data')
 camera = picamera.PiCamera()
 
 def setting():
-    camera.resolution = (2592,1944)
-    camera.awb_mode = 'sunlight'
+    camera.resolution = (1640,1232)
+#    camera.awb_mode = 'sunlight'
+    camera.sensor_mode = 4
+    camera.framerate=30
     # camera.brightness = 50
     # camera.flash_mode = 'on'
     # camera.exposure_compensation = 0
@@ -60,7 +62,7 @@ def shutter():
 
 if __name__ == '__main__':
     setting()
-    preview(preview_time=3)
+    preview(preview_time=5)
     try:
         while True:
             preview(preview_time=2)
