@@ -29,7 +29,7 @@ $ ~/deepjanken.py --model_path ~/retrained_graph.binaryproto --label_path ~/retr
 
  "Deep Janken" will starts
 
-# Licence
+# License
 This software is released under the Apache License 2.0 License, see LICENSE.
 
 
